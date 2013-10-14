@@ -71,6 +71,11 @@ static guint64 key_128_hash(gconstpointer key){
     return hash128to64(cache_key->low, cache_key->high);
 }
 
+static guint64 key_128_non_compression_hash(gconstpointer key){
+    const key_128_t cache_key = (const key_128_t) key;
+    return cache_key;
+}
+
 static gboolean key_128_equals(gconstpointer key1, gconstpointer key2){
     const key_128_t cache_key1 = (const key_128_t) key1;
     const key_128_t cache_key2 = (const key_128_t) key2;
@@ -496,7 +501,9 @@ void
 v2p_cache_init(
     vmi_instance_t vmi)
 {
-    vmi->v2p_cache = g_hash_table_new_full((GHashFunc) key_128_hash, key_128_equals, g_free, g_free);
+    // As the virtual memory address in x86-64 is 64bit wide, we shouldn't compress the vaddr
+    //   and dtb into a 64bit key any more.
+    vmi->v2p_cache = g_hash_table_new_full((GHashFunc) key_128_non_compression_hash, key_128_equals, g_free, g_free);
 }
 
 void
