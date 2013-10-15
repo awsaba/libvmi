@@ -36,6 +36,7 @@ START_TEST (test_libvmi_cache)
 {
     vmi_instance_t vmi = NULL;
     status_t ret = vmi_init(&vmi, VMI_AUTO | VMI_INIT_COMPLETE, get_testvm());
+    void* heap_buffer = NULL;
 
     v2p_cache_flush(vmi);
     v2p_cache_set(vmi, 0x400000, 0xabcde, 0x3b40a000);
@@ -43,6 +44,11 @@ START_TEST (test_libvmi_cache)
     addr_t pa = 0;
     ret = v2p_cache_get(vmi, 0x880000400000ull, 0xabcde, &pa);
     fail_if(ret == VMI_SUCCESS, "hit wrong cache");
+
+    heap_buffer = malloc(16);
+
+    ret = v2p_cache_get(vmi, 0x00000400000ull, 0xabcde, &pa);
+    fail_if(ret == VMI_FAILURE, "cache entry not found");
 
     v2p_cache_del(vmi, 0x400000, 0xabcde);
     vmi_destroy(vmi);
