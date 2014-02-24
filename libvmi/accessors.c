@@ -35,13 +35,7 @@ page_mode_t
 vmi_get_page_mode(
     vmi_instance_t vmi)
 {
-    if(vmi->page_mode == VMI_PM_UNKNOWN) {
-        page_mode_t ret=VMI_PM_UNKNOWN;
-        get_memory_layout(vmi, &ret, NULL, NULL, NULL);
-        return ret;
-    } else {
-        return vmi->page_mode;
-    }
+    return vmi->page_mode;
 }
 
 uint8_t vmi_get_address_width(

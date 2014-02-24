@@ -358,6 +358,9 @@ vmi_init_private(
     /* the config hash table is set up later based on mode */
     (*vmi)->config = NULL;
 
+    /* set page mode to unknown */
+    (*vmi)->page_mode = VMI_PM_UNKNOWN;
+
     /* setup the caches */
     pid_cache_init(*vmi);
     sym_cache_init(*vmi);
@@ -396,14 +399,14 @@ vmi_init_private(
     dbprint(VMI_DEBUG_CORE, "**set size = %"PRIu64" [0x%"PRIx64"]\n", (*vmi)->size,
         (*vmi)->size);
 
-    (*vmi)->page_mode = VMI_PM_UNKNOWN;
-    /* architecture specific initilization */
-    if (VMI_FAILURE == arch_init(*vmi)) {
-        if(init_mode & VMI_INIT_COMPLETE && VMI_FILE != (*vmi)->mode) {
+    // for file mode we need os-specific heuristics to deduce the architecture
+    if (VMI_FILE != (*vmi)->mode) {
+        /* architecture specific initilization */
+        if(VMI_FAILURE == arch_init(*vmi)) {
            dbprint(VMI_DEBUG_CORE, "--failed to determine architecture.\n");
            goto error_exit;
         }
-    } else {
+
         dbprint(VMI_DEBUG_CORE, "--completed architecture init.\n");
     }
 

@@ -72,22 +72,28 @@ find_page_mode(
 
     dbprint(VMI_DEBUG_MISC, "--trying VMI_PM_LEGACY\n");
     vmi->page_mode = VMI_PM_LEGACY;
-    if (VMI_SUCCESS == vmi_read_addr_ksym(vmi, "KernBase", &proc)) {
-        goto found_pm;
+    if (VMI_SUCCESS == arch_init(vmi)) {
+        if (VMI_SUCCESS == vmi_read_addr_ksym(vmi, "KernBase", &proc)) {
+            goto found_pm;
+        }
     }
     v2p_cache_flush(vmi);
 
     dbprint(VMI_DEBUG_MISC, "--trying VMI_PM_PAE\n");
     vmi->page_mode = VMI_PM_PAE;
-    if (VMI_SUCCESS == vmi_read_addr_ksym(vmi, "KernBase", &proc)) {
-        goto found_pm;
+    if (VMI_SUCCESS == arch_init(vmi)) {
+        if (VMI_SUCCESS == vmi_read_addr_ksym(vmi, "KernBase", &proc)) {
+            goto found_pm;
+        }
     }
     v2p_cache_flush(vmi);
 
     dbprint(VMI_DEBUG_MISC, "--trying VMI_PM_IA32E\n");
     vmi->page_mode = VMI_PM_IA32E;
-    if (VMI_SUCCESS == vmi_read_addr_ksym(vmi, "KernBase", &proc)) {
-        goto found_pm;
+    if (VMI_SUCCESS == arch_init(vmi)) {
+        if (VMI_SUCCESS == vmi_read_addr_ksym(vmi, "KernBase", &proc)) {
+            goto found_pm;
+        }
     }
 
     // KernBase was NOT found ////////////////
@@ -95,7 +101,11 @@ find_page_mode(
     return VMI_FAILURE;
 
 found_pm:
-    return VMI_SUCCESS;
+    if(VMI_SUCCESS == arch_init(vmi)) {
+        return VMI_SUCCESS;
+    } else {
+        return VMI_FAILURE;
+    }
 }
 
 /* Tries to find the kernel page directory by doing an exhaustive search

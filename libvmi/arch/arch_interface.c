@@ -143,12 +143,14 @@ status_t arch_init(vmi_instance_t vmi) {
     status_t ret = VMI_FAILURE;
 
     if (vmi->arch_interface != NULL) {
-        errprint("VMI_ERROR: arch interface already initialized\n");
-        return ret;
+        dbprint(VMI_DEBUG_CORE, "Resetting architecture interface");
+        bzero(vmi->arch_interface, sizeof(struct arch_interface));
     }
 
-    if(VMI_FAILURE == get_memory_layout(vmi)) {
-        return ret;
+    if(vmi->page_mode == VMI_PM_UNKNOWN) {
+        if(VMI_FAILURE == get_memory_layout(vmi)) {
+            return ret;
+        }
     }
 
     if (vmi->page_mode == VMI_PM_LEGACY || vmi->page_mode == VMI_PM_PAE) {
