@@ -233,3 +233,104 @@ vmi_get_vmid(
 
     return domid;
 }
+
+/* convert a kernel symbol into an address */
+addr_t vmi_translate_ksym2v (vmi_instance_t vmi, const char *symbol)
+{
+    status_t status = VMI_FAILURE;
+    addr_t base_vaddr = 0;
+    addr_t address = 0;
+
+    if (VMI_FAILURE == sym_cache_get(vmi, base_vaddr, 0, symbol, &address)) {
+
+        if (vmi->os_interface && vmi->os_interface->os_ksym2v) {
+            status = vmi->os_interface->os_ksym2v(vmi, symbol, &base_vaddr,
+                    &address);
+            if (status == VMI_SUCCESS) {
+                sym_cache_set(vmi, base_vaddr, 0, symbol, address);
+            }
+        }
+    }
+
+    return address;
+}
+
+/* convert a symbol into an address */
+addr_t vmi_translate_sym2v (vmi_instance_t vmi, addr_t base_vaddr, vmi_pid_t pid, char *symbol)
+{
+    status_t status = VMI_FAILURE;
+    addr_t rva = 0;
+    addr_t address = 0;
+
+    if (VMI_FAILURE == sym_cache_get(vmi, base_vaddr, pid, symbol, &address)) {
+
+        if (vmi->os_interface && vmi->os_interface->os_usym2rva) {
+            status  = vmi->os_interface->os_usym2rva(vmi, base_vaddr, pid, symbol, &rva);
+            if (status == VMI_SUCCESS) {
+                address = base_vaddr + rva;
+                sym_cache_set(vmi, base_vaddr, pid, symbol, address);
+            }
+        }
+    }
+
+    return address;
+}
+
+/* convert an RVA into a symbol */
+const char* vmi_translate_v2sym(vmi_instance_t vmi, addr_t base_vaddr, vmi_pid_t pid, addr_t rva)
+{
+    char *ret = NULL;
+
+    if (VMI_FAILURE == rva_cache_get(vmi, base_vaddr, pid, rva, &ret)) {
+        if (vmi->os_interface && vmi->os_interface->os_rva2sym) {
+            ret = vmi->os_interface->os_rva2sym(vmi, rva, base_vaddr, pid);
+        }
+
+        if (ret) {
+            rva_cache_set(vmi, base_vaddr, pid, rva, ret);
+        }
+    }
+
+    return ret;
+}
+
+/* finds the address of the page global directory for a given pid */
+addr_t vmi_pid_to_dtb (vmi_instance_t vmi, vmi_pid_t pid)
+{
+    addr_t dtb = 0;
+
+    if (VMI_FAILURE == pid_cache_get(vmi, pid, &dtb)) {
+        if (vmi->os_interface && vmi->os_interface->os_pid_to_pgd) {
+            dtb = vmi->os_interface->os_pid_to_pgd(vmi, pid);
+        }
+
+        if (dtb) {
+            pid_cache_set(vmi, pid, dtb);
+        }
+    }
+
+    return dtb;
+}
+
+/* finds the pid for a given dtb */
+vmi_pid_t vmi_dtb_to_pid (vmi_instance_t vmi, addr_t dtb)
+{
+    vmi_pid_t pid = -1;
+
+    if (vmi->os_interface && vmi->os_interface->os_pgd_to_pid) {
+        pid = vmi->os_interface->os_pgd_to_pid(vmi, dtb);
+    }
+
+    return pid;
+}
+
+void *
+vmi_read_page (vmi_instance_t vmi, addr_t frame_num)
+{
+    if (!frame_num) {
+        return NULL ;
+    }
+    else {
+        return driver_read_page(vmi, frame_num);
+    }
+}

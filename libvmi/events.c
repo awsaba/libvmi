@@ -110,11 +110,11 @@ void memevent_page_free(gpointer value)
     free(value);
 }
 
-void events_init(vmi_instance_t vmi)
+status_t events_init(vmi_instance_t vmi)
 {
     if (!(vmi->init_mode & VMI_INIT_EVENTS))
     {
-        return;
+        return VMI_FAILURE;
     }
 
     vmi->interrupt_events = g_hash_table_new(g_int_hash, g_int_equal);
@@ -123,13 +123,15 @@ void events_init(vmi_instance_t vmi)
     vmi->reg_events = g_hash_table_new(g_int_hash, g_int_equal);
     vmi->ss_events = g_hash_table_new_full(g_int_hash, g_int_equal, g_free,
             NULL);
+
+    return VMI_SUCCESS;
 }
 
-void events_destroy(vmi_instance_t vmi)
+status_t events_destroy(vmi_instance_t vmi)
 {
     if (!(vmi->init_mode & VMI_INIT_EVENTS))
     {
-        return;
+        return VMI_FAILURE;
     }
 
     if (vmi->mem_events)
@@ -161,6 +163,8 @@ void events_destroy(vmi_instance_t vmi)
         g_hash_table_foreach_steal(vmi->interrupt_events, event_entry_free, vmi);
         g_hash_table_destroy(vmi->interrupt_events);
     }
+
+    return VMI_SUCCESS;
 }
 
 status_t register_interrupt_event(vmi_instance_t vmi, vmi_event_t *event)
