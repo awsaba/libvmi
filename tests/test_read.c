@@ -1,5 +1,5 @@
-/* The LibVMI Library is an introspection library that simplifies access to 
- * memory in a target virtual machine or in a file containing a dump of 
+/* The LibVMI Library is an introspection library that simplifies access to
+ * memory in a target virtual machine or in a file containing a dump of
  * a system's physical memory.  LibVMI is based on the XenAccess Library.
  *
  * Copyright 2012 VMITools Project
@@ -81,6 +81,21 @@ START_TEST (test_vmi_read_va)
 }
 END_TEST
 
+START_TEST (test_vmi_read_va_fail_partial)
+{
+    vmi_instance_t vmi = NULL;
+    addr_t va = 0;
+    char *buf = malloc(100);
+    size_t count = 100;
+    vmi_init(&vmi, VMI_FILE | VMI_INIT_PARTIAL, get_testvm());
+    va = 0xabcd123;
+    size_t read = vmi_read_va(vmi, va, 0, buf, count);
+    fail_unless(read == 0, "vmi_read_va returned data when it should have failed due to PARTIAL init");
+    free(buf);
+    vmi_destroy(vmi);
+}
+END_TEST
+
 START_TEST (test_vmi_read_pa)
 {
     vmi_instance_t vmi = NULL;
@@ -152,6 +167,38 @@ START_TEST (test_vmi_read_64_ksym)
 }
 END_TEST
 
+START_TEST (test_vmi_pagetable_lookup)
+{
+    vmi_instance_t vmi = NULL;
+    addr_t va = 0;
+    addr_t pa = 0;
+    addr_t dtb = 0;
+    uint8_t value = 0;
+    vmi_init(&vmi, VMI_AUTO | VMI_INIT_COMPLETE, get_testvm());
+    va = get_vaddr(vmi);
+    dtb = vmi_pid_to_dtb(vmi, 0);
+    pa = vmi_pagetable_lookup(vmi, dtb, va);
+    fail_unless(pa != 0, "vmi_pagetable_lookup failed");
+    vmi_destroy(vmi);
+}
+END_TEST
+
+START_TEST (test_vmi_pagetable_lookup_fail_partial)
+{
+    vmi_instance_t vmi = NULL;
+    addr_t va = 0;
+    addr_t pa = 0;
+    addr_t dtb = 0;
+    uint8_t value = 0;
+    vmi_init(&vmi, VMI_AUTO | VMI_INIT_PARTIAL, get_testvm());
+    va = 0xabdc1234;
+    dtb = 0xdeadbeef;
+    pa = vmi_pagetable_lookup(vmi, dtb, va);
+    fail_unless(pa == 0, "vmi_pagetable_lookup should have failed");
+    vmi_destroy(vmi);
+}
+END_TEST
+
 START_TEST (test_vmi_read_8_va)
 {
     vmi_instance_t vmi = NULL;
@@ -162,6 +209,20 @@ START_TEST (test_vmi_read_8_va)
     va = get_vaddr(vmi);
     status = vmi_read_8_va(vmi, va, 0, &value);
     fail_unless(status == VMI_SUCCESS, "vmi_read_8_va failed");
+    vmi_destroy(vmi);
+}
+END_TEST
+
+START_TEST (test_vmi_read_8_va_fail_partial)
+{
+    vmi_instance_t vmi = NULL;
+    addr_t va = 0;
+    status_t status = VMI_FAILURE;
+    uint8_t value = 0;
+    vmi_init(&vmi, VMI_FILE | VMI_INIT_PARTIAL, get_testvm());
+    va = 0xabcd1234;
+    status = vmi_read_8_va(vmi, va, 0, &value);
+    fail_unless(status == VMI_FAILURE, "vmi_read_8_va did not fail on VMI_INIT_PARTIAL");
     vmi_destroy(vmi);
 }
 END_TEST
@@ -283,18 +344,23 @@ TCase *read_tcase (void)
     tcase_add_test(tc_read, test_vmi_read_16_va);
     tcase_add_test(tc_read, test_vmi_read_32_va);
     tcase_add_test(tc_read, test_vmi_read_64_va);
+    tcase_add_test(tc_read, test_vmi_pagetable_lookup);
+    tcase_add_test(tc_read, test_vmi_read_va_fail_partial);
+    tcase_add_test(tc_read, test_vmi_read_8_va_fail_partial);
+    tcase_add_test(tc_read, test_vmi_pagetable_lookup_fail_partial);
+
     // vmi_read_addr_va
     // vmi_read_str_va
     // vmi_read_unicode_str_va
     // vmi_convert_str_encoding
     // vmi_free_unicode_str
-   
+
     tcase_add_test(tc_read, test_vmi_read_8_pa);
     tcase_add_test(tc_read, test_vmi_read_16_pa);
     tcase_add_test(tc_read, test_vmi_read_32_pa);
     tcase_add_test(tc_read, test_vmi_read_64_pa);
     // vmi_read_addr_pa
     // vmi_read_str_pa
-  
+
     return tc_read;
 }
